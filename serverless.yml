@@ -1,0 +1,59 @@
+service: crud-app
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+# Define the DynamoDB table
+resources:
+  ItemsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ItemsTable
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+# Configure Lambda functions for each CRUD operation
+functions:
+  createItem:
+    handler: services.create_item
+    events:
+      - http:
+          path: items
+          method: post
+  getItem:
+    handler: services.get_item
+    events:
+      - http:
+          path: items/{id}
+          method: get
+  updateItem:
+    handler: services.update_item
+    events:
+      - http:
+          path: items/{id}
+          method: put
+  deleteItem:
+    handler: services.delete_item
+    events:
+      - http:
+          path: items/{id}
+          method: delete
+
+# Install dependencies
+plugins:
+  - serverless-python-requirements
+
+# Define dependency file
+custom:
+  pythonRequirements:
+    requirements.txt

@@ -1,52 +1,32 @@
-import json
-import boto3
+from fastapi import APIRouter, Depends, Body
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('ItemsTable')
+from ..services import create_item, get_item, update_item, delete_item
 
-
-def create_item(event, context):
-    body = json.loads(event['body'])
-    table.put_item(Item=body)
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Item created successfully')
-    }
+router = APIRouter(prefix="/api/items")
 
 
-def get_item(event, context):
-    item_id = event['pathParameters']['id']
-    response = table.get_item(Key={'id': item_id})
-    if 'Item' in response:
-        return {
-            'statusCode': 200,
-            'body': json.dumps(response['Item'])
-        }
+@router.post("/")
+async def create_item_handler(item: dict = Body(...)):
+    await create_item(item)
+    return {"message": "Item created successfully"}
+
+
+@router.get("/{item_id}")
+async def get_item_handler(item_id: str):
+    item = await get_item(item_id)
+    if item:
+        return item
     else:
-        return {
-            'statusCode': 404,
-            'body': json.dumps('Item not found')
-        }
+        return {"message": "Item not found"}
 
 
-def update_item(event, context):
-    item_id = event['pathParameters']['id']
-    body = json.loads(event['body'])
-    table.update_item(
-        Key={'id': item_id},
-        UpdateExpression="SET %s = :val1" % ', '.join(map(lambda x: x + ' = :' + x, body.keys())),
-        ExpressionAttributeValues={':' + k: v for k, v in body.items()}
-    )
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Item updated successfully')
-    }
+@router.put("/{item_id}")
+async def update_item_handler(item_id: str, item_data: dict = Body(...)):
+    await update_item(item_id, item_data)
+    return {"message": "Item updated successfully"}
 
 
-def delete_item(event, context):
-    item_id = event['pathParameters']['id']
-    table.delete_item(Key={'id': item_id})
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Item deleted successfully')
-    }
+@router.delete("/{item_id}")
+async def delete_item_handler(item_id: str):
+    await delete_item(item_id)
+    return {"message": "Item deleted successfully"}
